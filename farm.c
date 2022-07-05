@@ -119,6 +119,7 @@ int main(int argc, char *argv[]) {
   }
 
 	// ---Prendo i parametri opzionali tramite getopt()---
+	char *endptr;
 	int opt, nthreads = 4, delay = 0;
 	while ((opt = getopt(argc, argv, "n:q:t:")) != -1) {
 		switch(opt) {
@@ -129,7 +130,9 @@ int main(int argc, char *argv[]) {
 				Buf_size = atoi(optarg); // dimensione del buffer
 				break;
 			case 't':
-				delay = atoi(optarg); // delay di scrittura nel buffer
+				strtol(optarg, &endptr, 10);
+				if (endptr == optarg) xtermina("Errore Delay, argomento passato non valido", __LINE__, __FILE__);
+				else delay = atoi(optarg); // delay di scrittura nel buffer
 				break;
 			default:
 			break;
