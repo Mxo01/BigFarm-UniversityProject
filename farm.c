@@ -130,8 +130,8 @@ int main(int argc, char *argv[]) {
 				Buf_size = atoi(optarg); // dimensione del buffer
 				break;
 			case 't':
-				strtol(optarg, &endptr, 10);
-				if (endptr == optarg) xtermina("Errore Delay, argomento passato non valido", __LINE__, __FILE__);
+				strtol(optarg, &endptr, 10); // converto il parametro opzionale 
+				if (endptr == optarg) xtermina("Errore Delay, argomento passato non valido", __LINE__, __FILE__); // se il parametro opzionale non è valido termino il processo e stampo un errore 
 				else delay = atoi(optarg); // delay di scrittura nel buffer
 				break;
 			default:
