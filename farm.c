@@ -120,19 +120,24 @@ int main(int argc, char *argv[]) {
 
 	// ---Prendo i parametri opzionali tramite getopt()---
 	char *endptr;
-	int opt, nthreads = 4, delay = 0;
+	int opt, nthreads = 4, delay = 0, numopt = 0;
 	while ((opt = getopt(argc, argv, "n:q:t:")) != -1) {
 		switch(opt) {
 			case 'n':
 				nthreads = atoi(optarg); // numero di threads
+				numopt++; // incremento il numero di parametri opzionali
 				break;
 			case 'q':
 				Buf_size = atoi(optarg); // dimensione del buffer
+				numopt++; // incremento il numero di parametri opzionali
 				break;
 			case 't':
 				strtol(optarg, &endptr, 10); // converto il parametro opzionale 
 				if (endptr == optarg) xtermina("Errore Delay, argomento passato non valido", __LINE__, __FILE__); // se il parametro opzionale non è valido termino il processo e stampo un errore 
-				else delay = atoi(optarg); // delay di scrittura nel buffer
+				else {
+					delay = atoi(optarg); // delay di scrittura nel buffer
+					numopt++; // incremento il numero di parametri opzionali
+				}
 				break;
 			default:
 			break;
@@ -165,10 +170,10 @@ int main(int argc, char *argv[]) {
   }
 	
 	// ---Leggo i nomi dei file e li passo ai worker attraverso il buffer---
-	int i=1;
+	int i=2*numopt+1; // dato che in argv prima vengono memorizzati i parametri opzionali, decido di leggere solo i file tramite questa formula che mi permette di saltare i numopt parametri opzionali (+1 perchè salto anche il nome del processo che chiamo "./farm" e 2* perchè per ogni parametro opzionale corrisponde un determinato valore)
 	while (continua && i<argc) {
 		xsem_wait(&sem_free_slots,__LINE__,__FILE__);
-		buffer[pindex++ % Buf_size] = argv[i]; // inserisco nel buffer ogni elemento passato da linea di comando
+		buffer[pindex++ % Buf_size] = argv[i]; // inserisco nel buffer solo i file
 		xsem_post(&sem_data_items,__LINE__,__FILE__);
 		i++; // incremento l'indice
 		usleep(delay*1000); // aspetto tra una scrittura e l'altra
