@@ -48,8 +48,10 @@ void *tbody(void *arg) {
 
 		if (strcmp("<end>", nomefile)==0) break; // esco dal while in quanto sono arrivato alla fine
 
-		if ((f = fopen(nomefile, "rb"))==NULL) continue; // controllo che l'elemento che sto aprendo sia effettivamente un file
-
+		if ((f = fopen(nomefile, "rb"))==NULL) {
+			fprintf(stderr, "Il file '%s' non esiste o non è presente nella directory\n", nomefile); // se il file non esiste stampo un errore
+			continue; // controllo che l'elemento che sto aprendo sia effettivamente un file
+		}
 		do {
 			size_t e = fread(&n, sizeof(n),  1, f); // leggo l'i-esimo long del file e lo memorizzo in n
 			if (e!=1) break; // se arrivo alla fine mi fermo
@@ -139,7 +141,7 @@ int main(int argc, char *argv[]) {
 					numopt++; // incremento il numero di parametri opzionali
 				}
 				break;
-			default:
+			default: xtermina("Flag passato non valido", __LINE__, __FILE__); // se il parametro che passo non esiste termino
 			break;
 		}
 	}
