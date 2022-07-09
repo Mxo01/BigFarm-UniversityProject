@@ -48,6 +48,7 @@ void *tbody(void *arg) {
 
 		if (strcmp("<end>", nomefile)==0) break; // esco dal while in quanto sono arrivato alla fine
 
+		// ---Provo ad aprire il file in modalità rb ovvero lettura binaria---
 		if ((f = fopen(nomefile, "rb"))==NULL) {
 			fprintf(stderr, "Il file '%s' non esiste o non è presente nella directory\n", nomefile); // se il file non esiste stampo un errore
 			continue; // controllo che l'elemento che sto aprendo sia effettivamente un file
