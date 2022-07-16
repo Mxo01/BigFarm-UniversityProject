@@ -7,6 +7,9 @@
 // ---Variabile globale "esterna" che contiene il valore resituito dalla funzione getopt()---
 extern char *optarg;
 
+// ---Variabile globale "esterna" che contiene il numero di parametri opzionali---
+extern int optind;
+
 // ---Variabile globale che permette di interrompere l'esecuzione di un while nel main alla ricezione del segnale SIGINT---
 volatile sig_atomic_t continua = 1;
 
@@ -16,7 +19,8 @@ int Buf_size = 8;
 // ---Gestore del segnale SIGINT---
 void handler(int s) {
 	if (s==SIGINT) continua = 0; // se ricevo il segnale SIGINT setto continua a 0
-	fprintf(stderr,"\nSegnale SIGINT ricevuto\n");
+	int w = write(1,"\nSegnale SIGINT ricevuto\n", 26);
+	if (w!=26) xtermina("Errore write (SIGINT)", __LINE__, __FILE__);
 }
 
 // ---Struct che definisce di cosa ha bisogno ogni thread worker---
@@ -46,6 +50,7 @@ void *tbody(void *arg) {
 		xpthread_mutex_unlock(w->mutex, __LINE__, __FILE__);
 		xsem_post(w->sem_free_slots,__LINE__,__FILE__);
 
+		// Se leggo "<end>" il thread deve terminare perchè sono finiti i file da leggere
 		if (strcmp("<end>", nomefile)==0) break; // esco dal while in quanto sono arrivato alla fine
 
 		// ---Provo ad aprire il file in modalità rb ovvero lettura binaria---
@@ -53,6 +58,9 @@ void *tbody(void *arg) {
 			fprintf(stderr, "Il file '%s' non esiste o non è presente nella directory\n", nomefile); // se il file non esiste stampo un errore
 			continue; // controllo che l'elemento che sto aprendo sia effettivamente un file
 		}
+		
+		i = 0; 
+		somma = 0;
 		do {
 			size_t e = fread(&n, sizeof(n),  1, f); // leggo l'i-esimo long del file e lo memorizzo in n
 			if (e!=1) break; // se arrivo alla fine mi fermo
@@ -108,39 +116,33 @@ void *tbody(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
-	
-	// ---Gestione del segnale SIGINT---
-	struct sigaction sa; // struct che contiene il modo di gestione di un determinato segnale
-	sigaction(SIGINT, NULL, &sa); // inizializzo sa al valore iniziale
-	sa.sa_handler = &handler; // garantisce che il comportamento usato dalla struct sa per la gestione del segnale SIGINT sia quello definito nella funzione handler
-	sigaction(SIGINT, &sa, NULL); // handler per Control-C 
-	
+
   // ---Controlla numero argomenti---
   if (argc<2) {
     printf("Uso: %s file [file ...] \n",argv[0]);
     return 1;
   }
 
+	// ---Gestione del segnale SIGINT---
+	struct sigaction sa; // struct che contiene il modo di gestione di un determinato segnale
+	sigaction(SIGINT, NULL, &sa); // inizializzo sa al valore iniziale
+	sa.sa_handler = &handler; // garantisce che il comportamento usato dalla struct sa per la gestione del segnale SIGINT sia quello definito nella funzione handler
+	sigaction(SIGINT, &sa, NULL); // handler per Control-C 
+
 	// ---Prendo i parametri opzionali tramite getopt()---
 	char *endptr;
-	int opt, nthreads = 4, delay = 0, numopt = 0;
+	int opt, nthreads = 4, delay = 0;
 	while ((opt = getopt(argc, argv, "n:q:t:")) != -1) {
 		switch(opt) {
 			case 'n':
 				nthreads = atoi(optarg); // numero di threads
-				numopt++; // incremento il numero di parametri opzionali
 				break;
 			case 'q':
 				Buf_size = atoi(optarg); // dimensione del buffer
-				numopt++; // incremento il numero di parametri opzionali
 				break;
 			case 't':
-				strtol(optarg, &endptr, 10); // converto il parametro opzionale 
+				delay = strtol(optarg, &endptr, 10); // converto il parametro opzionale 
 				if (endptr == optarg) xtermina("Errore Delay, argomento passato non valido", __LINE__, __FILE__); // se il parametro opzionale non è valido termino il processo e stampo un errore 
-				else {
-					delay = atoi(optarg); // delay di scrittura nel buffer
-					numopt++; // incremento il numero di parametri opzionali
-				}
 				break;
 			default: xtermina("Flag passato non valido", __LINE__, __FILE__); // se il parametro che passo non esiste termino
 			break;
@@ -173,12 +175,10 @@ int main(int argc, char *argv[]) {
   }
 	
 	// ---Leggo i nomi dei file e li passo ai worker attraverso il buffer---
-	int i=2*numopt+1; // dato che in argv prima vengono memorizzati i parametri opzionali, decido di leggere solo i file tramite questa formula che mi permette di saltare i numopt parametri opzionali (+1 perchè salto anche il nome del processo che chiamo "./farm" e 2* perchè per ogni parametro opzionale corrisponde un determinato valore)
-	while (continua && i<argc) {
+	for (int i=optind; i<argc && continua; i++) {
 		xsem_wait(&sem_free_slots,__LINE__,__FILE__);
 		buffer[pindex++ % Buf_size] = argv[i]; // inserisco nel buffer solo i file
 		xsem_post(&sem_data_items,__LINE__,__FILE__);
-		i++; // incremento l'indice
 		usleep(delay*1000); // aspetto tra una scrittura e l'altra
 	}
   

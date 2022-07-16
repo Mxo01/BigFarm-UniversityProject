@@ -6,7 +6,7 @@ import sys, struct, socket, threading
 HOST = "127.0.0.1"  # (localhost)
 PORT = 57595 
 
-# ---Variabile globale che contiene le coppie (nomefile, somma)---
+# ---Variabile globale che contiene le coppie (somma, [nomefie1, nomefile2, ...])---
 pair_table = {} # tabella di coppie (dizionario)
 
 def main(host=HOST, port=PORT):
@@ -55,7 +55,11 @@ def gestisci_worker(conn,addr):
 	tmpI = recv_all(conn,8) # leggo la somma memorizzandola in un array di byte
 	assert len(tmpI)==8 # controllo di aver letto effettivamente 8 byte
 	somma = struct.unpack("!q", tmpI)[0] # converto la somma in un long
-	pair_table[nomefile] = somma # inserisco nel dizionario la coppia
+	# ---Se nel dizionario ho già inserito un file per una determinata somma
+	if somma in pair_table:
+		pair_table[somma].append(nomefile) # inserisco nel dizionario la coppia
+	else:
+		pair_table[somma] = [nomefile] # inserisco per la prima volta una somma associata ad una chiave
 
 # ---Funzione ausiliaria che permette di gestire la richiesta da parte del client di elencare
 # le coppie con una data somma---
@@ -63,27 +67,33 @@ def gestisci_client1(conn,addr):
 	tmpS = recv_all(conn,8) # leggo la somma dalla socket
 	assert len(tmpS)==8 # controllo di aver letto effettivamente 8 byte
 	sum = struct.unpack("!q", tmpS)[0] # converto la somma 
-	d = {} # dizionario che conterrà le coppie con una data somma
-	for k,v in pair_table.items():
-		if sum == v:
-			d[k] = v # inserisco nel dizionario tutte le coppie con una data somma
-	pairs = len(d) # numero di coppie con una data somma
-	conn.sendall(struct.pack("!i", pairs)) # mando il numero di coppie
-	for k,v in sorted(d.items(), key=lambda x:x[1]): # Ordino il dizionario tramite il metodo sorted e il secondo parametro permette di ordinarlo per valori crescenti in quanto è una lambda espressione che per ogni elemento del primo parametro lo ordina in base ad x[1] che sarebbe il secondo elemento della coppia (nomefile, somma) all'interno del dizionario
-		conn.sendall(struct.pack("!i", len(k))) # mando la lunghezza della chiave
-		conn.sendall(k.encode()) # mando la chiave
-		conn.sendall(struct.pack("!q", v)) # mando la somma
+	# ---Se la somma è contenuta nel dizionario mando le coppie---
+	if sum in pair_table:
+		pairs = len(pair_table[sum]) # numero di coppie con una data somma
+		conn.sendall(struct.pack("!i", pairs)) # mando il numero di coppie
+		for k in pair_table[sum]: # per ogni nomefile all'interno della lista relativa ad una determinata somma
+			conn.sendall(struct.pack("!i", len(k))) # mando la lunghezza del nome del file
+			conn.sendall(k.encode()) # mando il nome del file
+			conn.sendall(struct.pack("!q", sum)) # mando la somma
+	# ---Se la somma non è contenuta nel dizionario mando 0 come numero di coppie ovvero "Nessun file"---
+	else:
+		pairs = 0
+		conn.sendall(struct.pack("!i", pairs)) # mando il numero di coppie
 
 # ---Funzione ausiliaria che permette di gestire la richiesta da parte del client di elencare
 # tutte le coppie---
 def gestisci_client2(conn,addr):
-	pairs = len(pair_table) # numero totale di coppie
+	# ---Calcolo il numero totale di coppie---
+	pairs = 0
+	for v in pair_table.values():
+		pairs += len(v) # numero totale di coppie
 	conn.sendall(struct.pack("!i", pairs)) # mando il numero di coppie
 	# Per ogni coppia nel dizionario invio tale coppia al client
-	for k,v in sorted(pair_table.items(), key=lambda x:x[1]): # Ordino il dizionario tramite il metodo sorted e il secondo parametro permette di ordinarlo per valori crescenti in quanto è una lambda espressione che per ogni elemento del primo parametro lo ordina in base ad x[1] che sarebbe il secondo elemento della coppia (nomefile, somma) all'interno del dizionario
-		conn.sendall(struct.pack("!i", len(k))) # mando la lunghezza della chiave
-		conn.sendall(k.encode()) # mando la chiave
-		conn.sendall(struct.pack("!q", v)) # mando la somma
+	for k,v in sorted(pair_table.items()):
+		for file in v: 
+			conn.sendall(struct.pack("!i", len(file))) # mando la lunghezza del nome del file
+			conn.sendall(file.encode()) # mando il nome del file
+			conn.sendall(struct.pack("!q", k)) # mando la somma
 
 # riceve esattamente n byte e li restituisce in un array di byte
 # il tipo restituto è "bytes": una sequenza immutabile di valori 0-255
