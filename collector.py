@@ -55,8 +55,8 @@ def gestisci_worker(conn,addr):
 	tmpI = recv_all(conn,8) # leggo la somma memorizzandola in un array di byte
 	assert len(tmpI)==8 # controllo di aver letto effettivamente 8 byte
 	somma = struct.unpack("!q", tmpI)[0] # converto la somma in un long
-	# ---Se nel dizionario ho già inserito un file per una determinata somma
-	if somma in pair_table:
+	# ---Se nel dizionario ho già inserito un file per una determinata somma e non ho già inserito il quel file---
+	if somma in pair_table and not(nomefile in pair_table[somma]): # evito di avere duplicati
 		pair_table[somma].append(nomefile) # inserisco nel dizionario la coppia
 	else:
 		pair_table[somma] = [nomefile] # inserisco per la prima volta una somma associata ad una chiave

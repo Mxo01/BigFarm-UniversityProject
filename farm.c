@@ -4,17 +4,11 @@
 #define HOST "127.0.0.1" 
 #define PORT 57595
 
-// ---Variabile globale "esterna" che contiene il valore resituito dalla funzione getopt()---
-extern char *optarg;
-
-// ---Variabile globale "esterna" che contiene il numero di parametri opzionali---
-extern int optind;
+// ---Dimensione standard del buffer produttore/consumatori---
+int Buf_size = 8;
 
 // ---Variabile globale che permette di interrompere l'esecuzione di un while nel main alla ricezione del segnale SIGINT---
 volatile sig_atomic_t continua = 1;
-
-// ---Dimensione standard del buffer produttore/consumatori---
-int Buf_size = 8; 
 
 // ---Gestore del segnale SIGINT---
 void handler(int s) {
@@ -59,8 +53,8 @@ void *tbody(void *arg) {
 			continue; // controllo che l'elemento che sto aprendo sia effettivamente un file
 		}
 		
-		i = 0; 
-		somma = 0;
+		i = 0; // ripristino l'indice del file
+		somma = 0; // ripristino la somma del file
 		do {
 			size_t e = fread(&n, sizeof(n),  1, f); // leggo l'i-esimo long del file e lo memorizzo in n
 			if (e!=1) break; // se arrivo alla fine mi fermo
@@ -131,7 +125,7 @@ int main(int argc, char *argv[]) {
 
 	// ---Prendo i parametri opzionali tramite getopt()---
 	char *endptr;
-	int opt, nthreads = 4, delay = 0;
+	int opt, nthreads = 4, delay = 0; // dimensioni standard di thread e delay
 	while ((opt = getopt(argc, argv, "n:q:t:")) != -1) {
 		switch(opt) {
 			case 'n':
@@ -144,7 +138,7 @@ int main(int argc, char *argv[]) {
 				delay = strtol(optarg, &endptr, 10); // converto il parametro opzionale 
 				if (endptr == optarg) xtermina("Errore Delay, argomento passato non valido", __LINE__, __FILE__); // se il parametro opzionale non è valido termino il processo e stampo un errore 
 				break;
-			default: xtermina("Flag passato non valido", __LINE__, __FILE__); // se il parametro che passo non esiste termino
+			default: xtermina("Parametro opzionale non valido o mancante", __LINE__, __FILE__); // se il parametro che passo non esiste termino
 			break;
 		}
 	}
