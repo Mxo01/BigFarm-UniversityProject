@@ -36,20 +36,14 @@ int main(int argc, char *argv[]) {
 		w2 = writen(fd_skt, &type2, sizeof(type2)); // scrivo nella socket il tipo della richiesta di comunicazione tramite writen
 		if (w2!=sizeof(int)) xtermina("Errore write (type2)", __LINE__, __FILE__);
 		
-		int tmp, pairs;
+		char *nomefile; // dichiaro la stringa contenente il nome del file
+		int tmp, pairs; 
 		r2 = readn(fd_skt, &tmp, 4); // leggo dalla socket il numero di coppie
 		if (r2!=sizeof(int)) xtermina("Errore read (type2)", __LINE__, __FILE__);
 		pairs = ntohl(tmp); // ricavo il numero di coppie convertendo quello che ho letto
 		if (pairs==0) printf("Nessun file\n");
 		for (int i=0; i<pairs; i++) {
-			int tmpL, len, tmpI1, s1, tmpI2, s2;
-			r2 = readn(fd_skt, &tmpL, 4); // leggo dalla socket la lunghezza del nome del file
-			if (r2!=sizeof(int)) xtermina("Errore read (type2)", __LINE__, __FILE__);
-			len = ntohl(tmpL); // ricavo la lunghezza del nome del file convertendo quello che ho letto
-			char *nomefile = malloc((len+1)*sizeof(char)); // alloco la dimensione della stringa contenente il nome del file
-			nomefile[len] = 0; // aggiungo in ultima posizione lo zero '\0'
-			r2 = readn(fd_skt, nomefile, len); // leggo dalla socket il nome del file
-			if (r2!=len) xtermina("Errore read (type2)", __LINE__, __FILE__);
+			int tmpL, len, tmpI1, s1, tmpI2, s2, tmpF, lenF; // variabili temporanee
 			r2 = readn(fd_skt, &tmpI1, 4); // leggo dalla socket i primi 4 byte della somma
 			if (r2!=sizeof(int)) xtermina("Errore read (type2)", __LINE__, __FILE__);
 			s1 = ntohl(tmpI1); // ricavo i primi 4 byte della somma convertendo quello che ho letto
@@ -57,8 +51,20 @@ int main(int argc, char *argv[]) {
 			if (r2!=sizeof(int)) xtermina("Errore read (type2)", __LINE__, __FILE__);
 			s2 = ntohl(tmpI2); // ricavo gli ultimi 4 byte della somma convertendo quello che ho letto
 			long somma = ((long)s1 << 32) + ((long)s2 & 0x00000000ffffffff); // unisco i due interi in un unico long da 8 byte, estendendo s1 e shiftandolo di 32 bit a sinistra e sommandolo a s2 esteso e messo in and con la maschera 0x00000000ffffffff che ad ogni 0 corrispondono quattro bit a zero e ad ogni f corrispondono quattro bit a uno, con un totale di 64 bit (ovvero 8 byte)
-			printf("%ld %s \n", somma, nomefile); //stampo la coppia (somma, nomefile)
-			free(nomefile); // dealloco la memoria allocata con la malloc del nome del file
+			r2 = readn(fd_skt, &tmpF, 4); // leggo dalla socket il numero di file relativi alla somma
+			if (r2!=sizeof(int)) xtermina("Errore read (type2)", __LINE__, __FILE__);
+			lenF = ntohl(tmpF); // ricavo il numero di file relativi alla somma
+			for (int i=0; i<lenF; i++) {
+				r2 = readn(fd_skt, &tmpL, 4); // leggo dalla socket la lunghezza del nome del file
+				if (r2!=sizeof(int)) xtermina("Errore read (type2)", __LINE__, __FILE__);
+				len = ntohl(tmpL); // ricavo la lunghezza del nome del file convertendo quello che ho letto
+				nomefile = malloc((len+1)*sizeof(char)); // alloco la dimensione della stringa contenente il nome del file
+				nomefile[len] = 0; // aggiungo in ultima posizione lo zero '\0'
+				r2 = readn(fd_skt, nomefile, len); // leggo dalla socket il nome del file
+				if (r2!=len) xtermina("Errore read (type2)", __LINE__, __FILE__);
+				printf("%ld %s \n", somma, nomefile); //stampo la coppia (somma, nomefile)
+				free(nomefile); // dealloco la memoria allocata con la malloc del nome del file
+			}
 		}
 		if (close(fd_skt)<0) perror("Errore chiusura socket"); // chiudo il file descriptor del socket
 	}	
@@ -110,7 +116,7 @@ int main(int argc, char *argv[]) {
 		pairs = ntohl(tmp); // ricavo il numero di coppie convertendo quello che ho letto
 		if (pairs==0) printf("Nessun file\n");
 		for (int i=0; i<pairs; i++) {
-			int tmpL, len, tmpI1, s1, tmpI2, s2;
+			int tmpL, len;
 			r1 = readn(fd_skt, &tmpL, 4); // leggo dalla socket la lunghezza del nome del file
 			if (r1!=sizeof(int)) xtermina("Errore read (type1)", __LINE__, __FILE__);
 			len = ntohl(tmpL); // ricavo la lunghezza del nome del file convertendo quello che ho letto
@@ -118,14 +124,7 @@ int main(int argc, char *argv[]) {
 			nomefile[len] = 0; // aggiungo in ultima posizione lo zero '\0'
 			r1 = readn(fd_skt, nomefile, len); // leggo dalla socket il nome del file
 			if (r1!=len) xtermina("Errore read (type1)", __LINE__, __FILE__);
-			r1 = readn(fd_skt, &tmpI1, 4); // leggo dalla socket i primi 4 byte della somma
-			if (r1!=sizeof(int)) xtermina("Errore read (type1)", __LINE__, __FILE__);
-			s1 = ntohl(tmpI1); // ricavo i primi 4 byte della somma convertendo quello che ho letto
-			r1 = readn(fd_skt, &tmpI2, 4); // leggo dalla socket gli ultimi 4 byte della somma
-			if (r1!=sizeof(int)) xtermina("Errore read (type1)", __LINE__, __FILE__);
-			s2 = ntohl(tmpI2); // ricavo gli ultimi 4 byte della somma convertendo quello che ho letto
-			long somma = ((long)s1 << 32) + ((long)s2 & 0x00000000ffffffff); // unisco i due interi in un unico long da 8 byte, estendendo s1 e shiftandolo di 32 bit a sinistra e sommandolo a s2 esteso e messo in and con la maschera 0x00000000ffffffff che ad ogni 0 corrispondono quattro bit a zero e ad ogni f corrispondono quattro bit a uno, con un totale di 64 bit (ovvero 8 byte)
-			printf("%ld %s \n", somma, nomefile); //stampo la coppia (somma, nomefile)
+			printf("%ld %s \n", sum, nomefile); //stampo la coppia (somma, nomefile)
 			free(nomefile); // dealloco la memoria allocata con la malloc del nome del file
 		}
 		if (close(fd_skt)<0) perror("Errore chiusura socket"); // chiudo il file descriptor del socket

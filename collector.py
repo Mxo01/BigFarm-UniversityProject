@@ -74,7 +74,7 @@ def gestisci_client1(conn,addr):
 		for k in pair_table[sum]: # per ogni nomefile all'interno della lista relativa ad una determinata somma
 			conn.sendall(struct.pack("!i", len(k))) # mando la lunghezza del nome del file
 			conn.sendall(k.encode()) # mando il nome del file
-			conn.sendall(struct.pack("!q", sum)) # mando la somma
+			# conn.sendall(struct.pack("!q", sum)) # mando la somma
 	# ---Se la somma non è contenuta nel dizionario mando 0 come numero di coppie ovvero "Nessun file"---
 	else:
 		pairs = 0
@@ -84,16 +84,16 @@ def gestisci_client1(conn,addr):
 # tutte le coppie---
 def gestisci_client2(conn,addr):
 	# ---Calcolo il numero totale di coppie---
-	pairs = 0
-	for v in pair_table.values():
-		pairs += len(v) # numero totale di coppie
-	conn.sendall(struct.pack("!i", pairs)) # mando il numero di coppie
-	# Per ogni coppia nel dizionario invio tale coppia al client
-	for k,v in sorted(pair_table.items()):
-		for file in v: 
-			conn.sendall(struct.pack("!i", len(file))) # mando la lunghezza del nome del file
-			conn.sendall(file.encode()) # mando il nome del file
-			conn.sendall(struct.pack("!q", k)) # mando la somma
+	keys = list(pair_table) # array di somme 
+	keys.sort() # ordino l'array
+	conn.sendall(struct.pack("!i", len(keys))) # mando il numero di somme
+	for s in keys:
+		conn.sendall(struct.pack("!q", s)) # mando la somma al client
+		files = pair_table[s] # array di file realtivi alla somma s
+		conn.sendall(struct.pack("!i", len(files))) # mando il numero di file relativi alla somma s
+		for f in files:
+			conn.sendall(struct.pack("!i", len(f))) # mando la lunghezza del nome del file
+			conn.sendall(f.encode()) # mando il nome del file
 
 # riceve esattamente n byte e li restituisce in un array di byte
 # il tipo restituto è "bytes": una sequenza immutabile di valori 0-255

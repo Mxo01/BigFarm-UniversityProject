@@ -13,7 +13,7 @@ volatile sig_atomic_t continua = 1;
 // ---Gestore del segnale SIGINT---
 void handler(int s) {
 	if (s==SIGINT) continua = 0; // se ricevo il segnale SIGINT setto continua a 0
-	int w = write(1,"\nSegnale SIGINT ricevuto\n", 26);
+	int w = write(2,"\nSegnale SIGINT ricevuto\n", 26);
 	if (w!=26) xtermina("Errore write (SIGINT)", __LINE__, __FILE__);
 }
 
@@ -53,7 +53,7 @@ void *tbody(void *arg) {
 			continue; // controllo che l'elemento che sto aprendo sia effettivamente un file
 		}
 		
-		i = 0; // ripristino l'indice del file
+		i = 0; // ripristino l'indice della riga del file
 		somma = 0; // ripristino la somma del file
 		do {
 			size_t e = fread(&n, sizeof(n),  1, f); // leggo l'i-esimo long del file e lo memorizzo in n
