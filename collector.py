@@ -1,10 +1,14 @@
 #! /usr/bin/python3
 
-import sys, struct, socket, threading 
+# Import necessari
+import sys, struct, socket, threading
 
 # ---Indirizzo e porta del socket---
 HOST = "127.0.0.1"  # (localhost)
 PORT = 57595 
+
+# ---Variabile globale che identifica il mutex che garantisce la mutua esclusione ai thread per l'accesso al dizionario 
+mutex = threading.Lock()
 
 # ---Variabile globale che contiene le coppie (somma, [nomefie1, nomefile2, ...])---
 pair_table = {} # tabella di coppie (dizionario)
@@ -56,10 +60,12 @@ def gestisci_worker(conn,addr):
 	assert len(tmpI)==8 # controllo di aver letto effettivamente 8 byte
 	somma = struct.unpack("!q", tmpI)[0] # converto la somma in un long
 	# ---Se nel dizionario ho già inserito un file per una determinata somma e non ho già inserito il quel file---
+	mutex.acquire() # acquisisco la lock per garantire la mutua esclusione
 	if somma in pair_table and not(nomefile in pair_table[somma]): # evito di avere duplicati
 		pair_table[somma].append(nomefile) # inserisco nel dizionario la coppia
 	else:
 		pair_table[somma] = [nomefile] # inserisco per la prima volta una somma associata ad una chiave
+	mutex.release() # rilascio la lock
 
 # ---Funzione ausiliaria che permette di gestire la richiesta da parte del client di elencare
 # le coppie con una data somma---
