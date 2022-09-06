@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 
   // ---Controlla numero argomenti---
   if (argc<2) {
-    printf("Uso: %s file [file ...] \n",argv[0]);
+    printf("Uso: %s file [file ...] [-n numero_thread] [-t delay] [-q dimensione_buffer]\n",argv[0]);
     return 1;
   }
 
@@ -177,12 +177,12 @@ int main(int argc, char *argv[]) {
 	}
   
 	// ---Inserisco nel buffer un carattere speciale che indica la terminazione---
-	for (int i=0; i<Buf_size; i++) {
+	for (int i=0; i<nthreads; i++) {
 		xsem_wait(&sem_free_slots,__LINE__,__FILE__);
 		buffer[pindex++ % Buf_size] = "<end>";
 		xsem_post(&sem_data_items,__LINE__,__FILE__);
 	}
-	
+
 	// ---Join dei thread e calcolo del risultato---
 	for (int i=0; i<nthreads; i++) 
     xpthread_join(t[i], NULL, __LINE__, __FILE__);

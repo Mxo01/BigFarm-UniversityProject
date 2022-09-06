@@ -61,7 +61,9 @@ def gestisci_worker(conn,addr):
 	somma = struct.unpack("!q", tmpI)[0] # converto la somma in un long
 	# ---Se nel dizionario ho già inserito un file per una determinata somma e non ho già inserito il quel file---
 	mutex.acquire() # acquisisco la lock per garantire la mutua esclusione
-	if somma in pair_table and not(nomefile in pair_table[somma]): # evito di avere duplicati
+	if somma in pair_table and nomefile in pair_table[somma]:
+		print("Attenzione: il file",nomefile,"è già presente!", file=sys.stderr)
+	elif somma in pair_table and not(nomefile in pair_table[somma]): # evito di avere duplicati
 		pair_table[somma].append(nomefile) # inserisco nel dizionario la coppia
 	else:
 		pair_table[somma] = [nomefile] # inserisco per la prima volta una somma associata ad una chiave
