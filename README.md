@@ -1,5 +1,3 @@
-MARIO DI MODICA CORSO B 621595
-
 Il progetto è suddiviso in 3 principali file:
 
 1) farm.c che rappresenta il processo principale MasterWorker con un main thread (che svolge la funzione di unico produttore) e n thread ausiliari (che svolgono la funzione di consumatori). Come appena specificato, quindi, l'eseguibile farm è suddiviso in due parti:
